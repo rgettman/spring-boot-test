@@ -1,0 +1,17 @@
+target/
+.gradle/
+build/
+
+.idea/
+*.iml
+.settings/
+.classpath
+.project
+.factorypath
+
+.git
+.gitignore
+.DS_Store
+Thumbs.db
+*.properties
+*.yml
