@@ -16,7 +16,7 @@ public interface EmployeeRepository {
 
     Optional<Employee> getEmployeeById(int id);
 
-    int createEmployee(String fistName, String lastName, String position, int age, double salary);
+    int createEmployee(String firstName, String lastName, String position, int age, double salary);
 
     Employee save(Employee employee);
 }

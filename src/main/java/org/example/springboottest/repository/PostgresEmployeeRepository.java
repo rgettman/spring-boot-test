@@ -12,8 +12,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 /**
- * If there are multiple implementations, choose one with @Preferred,
- * or @Qualified(beanName) on the injection parameter, or put a different
+ * If there are multiple implementations, choose one with @Primary,
+ * or @Qualifier(beanName) on the injection parameter, or put a different
  * profile on each, e.g. @Profile("local") / @Profile("prod").
  * Assumes that a database has been configured with the "demo" schema and an
  * "employee" table with columns corresponding to the fields of this class.
@@ -25,7 +25,7 @@ public interface PostgresEmployeeRepository extends EmployeeRepository, JpaRepos
      * JPA won't recognize "findAllEmployees" by default.
      * Give it its own JPQL query instead.
      */
-    @Query("SELECT e FROM Employee e ORDER BY id")
+    @Query("SELECT e FROM Employee e ORDER BY e.id")
     @Override
     List<Employee> findAllEmployees();
 
@@ -37,9 +37,9 @@ public interface PostgresEmployeeRepository extends EmployeeRepository, JpaRepos
      * @return The new employee's ID.
      */
     @Override
-    default int createEmployee(String fistName, String lastName, String position, int age, double salary) {
+    default int createEmployee(String firstName, String lastName, String position, int age, double salary) {
         Employee employee = new Employee();
-        employee.setFirstName(fistName);
+        employee.setFirstName(firstName);
         employee.setLastName(lastName);
         employee.setPosition(position);
         employee.setAge(age);

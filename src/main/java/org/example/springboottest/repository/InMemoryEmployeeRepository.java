@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.context.annotation.Profile;
@@ -14,8 +13,8 @@ import org.springframework.stereotype.Repository;
 import org.example.springboottest.entity.Employee;
 
 /**
- * If there are multiple implementations, choose one with @Preferred,
- * or @Qualified(beanName) on the injection parameter, or put a different
+ * If there are multiple implementations, choose one with @Primary,
+ * or @Qualifier(beanName) on the injection parameter, or put a different
  * profile on each, e.g. @Profile("local") / @Profile("prod").
  */
 @Repository
@@ -74,13 +73,13 @@ public class InMemoryEmployeeRepository implements EmployeeRepository {
     }
 
     @Override
-    public int createEmployee(String fistName, String lastName, String position, int age, double salary) {
+    public int createEmployee(String firstName, String lastName, String position, int age, double salary) {
         int newEmployeeId = maxEmployeeId + 1;
         maxEmployeeId = newEmployeeId;
 
         Employee created = new Employee();
         created.setId(newEmployeeId);
-        created.setFirstName(fistName);
+        created.setFirstName(firstName);
         created.setLastName(lastName);
         created.setPosition(position);
         created.setAge(age);

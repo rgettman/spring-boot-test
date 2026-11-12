@@ -1,6 +1,8 @@
 package org.example.springboottest.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 
 /**
  * Create a separate incoming patch DTO for PATCH requests to update an
@@ -11,10 +13,22 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  * Could override on a per-class basis with @JsonIgnoreProperties(ignoreUnknown = true).
  */
 public class EmployeePatchDTO {
+    // Every field is optional in a PATCH.  Most constraints treat null as
+    // valid, so these only reject a value that was actually supplied.  (@NotBlank
+    // would not work here, because it rejects null.)
+    @Pattern(regexp = ".*\\S.*", message = "firstName must not be blank")
     private String firstName;
+
+    @Pattern(regexp = ".*\\S.*", message = "lastName must not be blank")
     private String lastName;
+
+    @Pattern(regexp = ".*\\S.*", message = "position must not be blank")
     private String position;
+
+    @Positive(message = "age must be greater than 0")
     private Integer age;
+
+    @Positive(message = "salary must be greater than 0")
     private Double salary;
 
     public String getFirstName() {

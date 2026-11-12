@@ -1,6 +1,8 @@
 package org.example.springboottest.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 
 /**
  * Create a separate incoming patch DTO for POST requests to create an
@@ -11,10 +13,23 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  * Could override on a per-class basis with @JsonIgnoreProperties(ignoreUnknown = true).
  */
 public class EmployeeCreateDTO {
+    // Bean Validation constraints.  They are only checked when the controller
+    // parameter has @Valid.  Jackson cannot catch a missing field for a
+    // primitive (it silently uses 0), so @Positive also rejects an omitted
+    // age or salary.
+    @NotBlank(message = "firstName is required")
     private String firstName;
+
+    @NotBlank(message = "lastName is required")
     private String lastName;
+
+    @NotBlank(message = "position is required")
     private String position;
+
+    @Positive(message = "age must be greater than 0")
     private int age;
+
+    @Positive(message = "salary must be greater than 0")
     private double salary;
 
     public String getFirstName() {

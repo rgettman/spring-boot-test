@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
+import jakarta.validation.Valid;
 import org.example.springboottest.dto.EmployeeCreateDTO;
 import org.example.springboottest.dto.EmployeeDTO;
 import org.example.springboottest.dto.EmployeePatchDTO;
@@ -99,10 +100,13 @@ public class EmployeeController {
     /**
      * The @RequestBody annotation takes its values from the request body but
      * NOT the query parameters.  The @RequestParam annotation takes its values
-     * from either the query parameters or the request body.
+     * from either the query parameters or the request body. @Valid runs the
+     * Bean Validation constraints on the DTO after Jackson converts the JSON.
+     * A violation throws MethodArgumentNotValidException before this method
+     * body runs.
      */
     @PostMapping
-    public ResponseEntity<String> createEmployee(@RequestBody EmployeeCreateDTO createDTO) {
+    public ResponseEntity<String> createEmployee(@Valid @RequestBody EmployeeCreateDTO createDTO) {
         int id = employeeService.createEmployee(createDTO);
 
         // Use ServletUriComponentsBuilder to construct a URI.
@@ -116,7 +120,7 @@ public class EmployeeController {
     // TODO: Bulk insert.
 
     @PatchMapping("/{id}")
-    public ResponseEntity<EmployeeDTO> updateEmployee(@PathVariable("id") int id, @RequestBody EmployeePatchDTO patchDTO) {
+    public ResponseEntity<EmployeeDTO> updateEmployee(@PathVariable("id") int id, @Valid @RequestBody EmployeePatchDTO patchDTO) {
         return ResponseEntity.ok(employeeService.updateEmployee(id, patchDTO));
     }
 }

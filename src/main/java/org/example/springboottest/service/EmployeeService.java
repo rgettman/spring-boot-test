@@ -25,6 +25,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 public class EmployeeService {
@@ -36,9 +38,11 @@ public class EmployeeService {
 
     private static final Function<Employee, EmployeeDTO> MAPPER =
             emp -> new EmployeeDTO(emp.getId(), emp.getFirstName(), emp.getLastName(), emp.getPosition(), emp.getAge(), emp.getSalary());
-    private static final String EMPLOYEE_INDEX_KEY = "employees:sorted:index";
     private static final String EMPLOYEE_KEY = "employees";
     private static final String ALL_EMPLOYEES_KEY = "allEmployees";
+    // A counter that is part of every sort index key.  Bumping it makes all
+    // existing indexes unreachable at once, without scanning for keys.
+    private static final String INDEX_VERSION_KEY = EMPLOYEE_KEY + ":index:version";
 
     /**
      * Constructor-inject the Repository object.
@@ -69,12 +73,17 @@ public class EmployeeService {
 
     /**
      * Use injected RedisTemplate
+     * Read the index version BEFORE touching the index or the database.  If a
+     * write commits while this method is rebuilding an index, the version moves
+     * on, and the index built here lands under the old version key, which no
+     * later request reads.  It simply expires.
      */
     @Transactional(readOnly = true)
     public Page<EmployeeDTO> getEmployeesPaginated(int page, int size, String sortBy, String direction) {
         log.info("Getting paginated employees for page {} and size {}.", page, size);
 
-        String indexKey = String.format(EMPLOYEE_KEY + ":index:sortBy:%s:dir:%s", sortBy, direction);
+        String indexKey = String.format(EMPLOYEE_KEY + ":index:v%s:sortBy:%s:dir:%s",
+                currentIndexVersion(), sortBy, direction);
 
         boolean hasKey = redisTemplate.hasKey(indexKey);
         if (!hasKey) {
@@ -153,7 +162,7 @@ public class EmployeeService {
     public int createEmployee(EmployeeCreateDTO createDTO) {
         log.info("Creating employee in the repository.");
 
-        clearAllSortingIndexes();
+        invalidateSortingIndexes();
         return employeeRepository.createEmployee(createDTO.getFirstName(), createDTO.getLastName(),
                 createDTO.getPosition(), createDTO.getAge(), createDTO.getSalary());
     }
@@ -189,15 +198,49 @@ public class EmployeeService {
         if (patchDTO.getSalary() != null) {
             existing.setSalary(patchDTO.getSalary());
         }
-        clearAllSortingIndexes();
+        invalidateSortingIndexes();
         employeeRepository.save(existing);
         return MAPPER.apply(existing);
     }
 
-    private void clearAllSortingIndexes() {
-        Set<String> keys = redisTemplate.keys("employees:index:sortBy:*");
-        if (keys != null && !keys.isEmpty()) {
-            redisTemplate.delete(keys);
+    /**
+     * The current version of the sort indexes, "0" if none has been set yet.
+     */
+    private String currentIndexVersion() {
+        String version = redisTemplate.opsForValue().get(INDEX_VERSION_KEY);
+        return version == null ? "0" : version;
+    }
+
+    /**
+     * Invalidate every sort index by bumping the version, but only AFTER the
+     * current transaction commits.  Invalidating before the commit would let a
+     * concurrent reader rebuild the index from the old, still-committed data
+     * and keep it for the whole TTL.  Call this from any new write path.
+     * The old version's keys are not deleted; they expire on their own TTL.
+     */
+    private void invalidateSortingIndexes() {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    bumpIndexVersion();
+                }
+            });
+        }
+        else {
+            // No transaction, so there is nothing to wait for.
+            bumpIndexVersion();
+        }
+    }
+
+    private void bumpIndexVersion() {
+        try {
+            redisTemplate.opsForValue().increment(INDEX_VERSION_KEY);
+        }
+        catch (RuntimeException e) {
+            // The data is already committed, so don't fail the request.  The
+            // indexes will be stale until their TTL expires.
+            log.error("Could not bump the sort index version; indexes may be stale until they expire.", e);
         }
     }
 }
