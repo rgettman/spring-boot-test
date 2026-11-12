@@ -1,0 +1,14 @@
+{
+  "permissions" : {
+    "allow": [
+      "Bash(mvn compile *)",
+      "Bash(mvn test *)",
+      "Bash(git status*)",
+      "Bash(git diff)",
+      "Bash(ls *)"
+    ],
+    "deny": [
+      "Bash(rm -rf*)"
+    ]
+  }
+}
